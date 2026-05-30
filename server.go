@@ -16,9 +16,10 @@ type server struct {
 	httpServer *http.Server
 	store      store.Store
 	cancel     context.CancelFunc
+	logger     *log.Logger
 }
 
-func newServer(store store.Store, port int, cancel context.CancelFunc) *server {
+func newServer(store store.Store, port int, cancel context.CancelFunc, logger *log.Logger) *server {
 	mux := http.NewServeMux()
 
 	srv := &http.Server{
@@ -30,6 +31,7 @@ func newServer(store store.Store, port int, cancel context.CancelFunc) *server {
 		httpServer: srv,
 		store:      store,
 		cancel:     cancel,
+		logger:     logger,
 	}
 
 	mux.HandleFunc("GET /", s.handlerIndex)
@@ -52,12 +54,12 @@ func (s *server) start() error {
 	tcpAddr := ln.Addr().(*net.TCPAddr)
 	port := tcpAddr.Port
 
-	logger.Printf("Linko is running on http://localhost:%d", port)
+	s.logger.Printf("Linko is running on http://localhost:%d", port)
 
 	if err := s.httpServer.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
-	logger.Println("Linko is shutting down")
+	s.logger.Println("Linko is shutting down")
 	return nil
 }
 
