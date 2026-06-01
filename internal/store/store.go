@@ -5,7 +5,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -29,10 +29,10 @@ const (
 
 type Store struct {
 	dir    string
-	logger *log.Logger
+	logger *slog.Logger
 }
 
-func New(dir string, log *log.Logger) (*Store, error) {
+func New(dir string, log *slog.Logger) (*Store, error) {
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func (s *Store) Lookup(_ context.Context, short string) (string, error) {
 		return "", ErrNotFound
 	}
 	if err != nil {
-		fmt.Printf("failed to read %s: %v\n", shortcodeFilepath, err)
+		s.logger.Debug("failed to read", "shortcodeFilepath", shortcodeFilepath, "error", err)
 		return "", err
 	}
 	return string(data), nil
