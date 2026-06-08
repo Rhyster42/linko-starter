@@ -27,10 +27,10 @@ func initializeLogger(logFile string) (*slog.Logger, closeFunc, error) {
 		closer := func() error {
 
 			if err := bufferedFile.Flush(); err != nil {
-				return fmt.Errorf("failed to flush log file: ", err)
+				return fmt.Errorf("failed to flush log file: %v", err)
 			}
 			if err = file.Close(); err != nil {
-				return fmt.Errorf("failed to close log file: ", err)
+				return fmt.Errorf("failed to close log file: %v", err)
 			}
 			return nil
 		}
