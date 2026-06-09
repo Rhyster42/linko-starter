@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"io"
 	"log/slog"
 	"os"
 
@@ -20,10 +19,13 @@ type stackTracer interface {
 
 func initializeLogger(logFile string) (*slog.Logger, closeFunc, error) {
 
-	debugHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level:       slog.LevelDebug,
-		ReplaceAttr: replaceAttr,
-	})
+	handlers := []slog.Handler{
+		slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+			Level:       slog.LevelDebug,
+			ReplaceAttr: replaceAttr,
+		}),
+	}
+	closers := []closeFunc{}
 
 	if logFile != "" {
 		file, err := os.OpenFile(logFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
@@ -31,9 +33,7 @@ func initializeLogger(logFile string) (*slog.Logger, closeFunc, error) {
 			return nil, nil, fmt.Errorf("failed to open log file: %w", err)
 		}
 		bufferedFile := bufio.NewWriterSize(file, 8192)
-		multiWriter := io.MultiWriter(os.Stderr, bufferedFile)
-
-		closer := func() error {
+		close := func() error {
 
 			if err := bufferedFile.Flush(); err != nil {
 				return fmt.Errorf("failed to flush log file: %v", err)
@@ -43,23 +43,22 @@ func initializeLogger(logFile string) (*slog.Logger, closeFunc, error) {
 			}
 			return nil
 		}
-		infoHandler := slog.NewJSONHandler(multiWriter, &slog.HandlerOptions{
+		handlers = append(handlers, slog.NewJSONHandler(bufferedFile, &slog.HandlerOptions{
 			Level:       slog.LevelInfo,
 			ReplaceAttr: replaceAttr,
-		})
-
-		return slog.New(slog.NewMultiHandler(infoHandler, debugHandler)), closer, nil
+		}))
+		closers = append(closers, close)
 	}
 	closer := func() error {
-		return nil
+		var errs []error
+		for _, close := range closers {
+			if err := close(); err != nil {
+				errs = append(errs, err)
+			}
+		}
+		return errors.Join(errs...)
 	}
-
-	infoHandler := slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
-		Level:       slog.LevelInfo,
-		ReplaceAttr: replaceAttr,
-	})
-
-	return slog.New(slog.NewMultiHandler(infoHandler, debugHandler)), closer, nil
+	return slog.New(slog.NewMultiHandler(handlers...)), closer, nil
 }
 
 func replaceAttr(groups []string, a slog.Attr) slog.Attr {
@@ -78,7 +77,6 @@ func replaceAttr(groups []string, a slog.Attr) slog.Attr {
 				Value: slog.StringValue(fmt.Sprintf("%+v", stackErr.StackTrace())),
 			})
 		}
-		return slog.String("error", fmt.Sprintf("%+v", err))
 	}
 	return a
 }
