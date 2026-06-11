@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	linkoerr "boot.dev/linko/internal"
+	linkoerr "boot.dev/linko/internal/linkoerr"
 )
 
 type ShortURL struct {
