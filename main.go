@@ -12,6 +12,11 @@ import (
 	"boot.dev/linko/internal/store"
 )
 
+type multiError interface {
+	error
+	Unwrap() []error
+}
+
 func main() {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
