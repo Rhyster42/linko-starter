@@ -7,7 +7,8 @@ import (
 	"log/slog"
 	"os"
 
-	linkoerr "boot.dev/linko/internal"
+	linkoerr "boot.dev/linko/internal/linkoerr"
+
 	pkgerr "github.com/pkg/errors"
 )
 
